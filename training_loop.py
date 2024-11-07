@@ -221,6 +221,11 @@ parser.add_argument(
     help="Freeze the feature extraction layers, train classifier head only",
 )
 parser.add_argument(
+    "--reset-head",
+    action="store_true",
+    help="Reinit the head weights when loading a pretrained model",
+)
+parser.add_argument(
     "--dataset-file",
     default="datasets/aibooru.json",
     help="JSON file with dataset specs",
@@ -369,6 +374,7 @@ grad_clip = args.grad_clip
 weight_decay = args.weight_decay
 loss_weights_file = args.loss_weights_file
 freeze_model_body = args.freeze_model_body
+reset_head = args.reset_head
 
 # Augmentations hyperparams
 noise_level = 2
@@ -407,6 +413,7 @@ train_config["random_resize_method"] = random_resize_method
 train_config["restore_params_ckpt"] = restore_params_ckpt
 train_config["restore_simmim_ckpt"] = restore_simmim_ckpt
 train_config["freeze_model_body"] = freeze_model_body
+train_config["reset_head"] = reset_head
 
 # Add model specific arguments to WandB dict
 args_dict = vars(args)
@@ -603,6 +610,9 @@ if restore_params_ckpt or restore_simmim_ckpt:
             metrics_history=orbax.checkpoint.args.StandardRestore(),
         ),
     )
+
+    if restore_params_ckpt and reset_head:
+        del restored["model"]["params"]["head"]
 
     transforms = {}
     if restore_simmim_ckpt:
